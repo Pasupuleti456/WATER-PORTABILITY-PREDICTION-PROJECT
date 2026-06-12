@@ -1,8 +1,112 @@
-# -----------------------------------
-# PREDICTION
-# -----------------------------------
+import streamlit as st
+import numpy as np
+import pickle
+
+# -----------------------------
+# PAGE CONFIG
+# -----------------------------
+st.set_page_config(
+    page_title="Water Potability Predictor",
+    page_icon="🚰",
+    layout="wide"
+)
+
+# -----------------------------
+# LOAD MODEL
+# -----------------------------
+model = pickle.load(open("water_model.pkl", "rb"))
+scaler = pickle.load(open("scaler.pkl", "rb"))
+
+# -----------------------------
+# TITLE
+# -----------------------------
+st.title("🚰 Water Potability Prediction")
+st.write("Enter water quality parameters and analyze drinking safety.")
+
 st.markdown("---")
 
+# -----------------------------
+# INPUTS
+# -----------------------------
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    ph = st.number_input(
+        "pH",
+        min_value=0.0,
+        max_value=14.0,
+        value=7.0,
+        step=0.1
+    )
+
+    hardness = st.number_input(
+        "Hardness (mg/L)",
+        min_value=0.0,
+        value=150.0
+    )
+
+    solids = st.number_input(
+        "Solids (ppm)",
+        min_value=0.0,
+        value=10000.0
+    )
+
+with col2:
+    chloramines = st.number_input(
+        "Chloramines (ppm)",
+        min_value=0.0,
+        value=6.0
+    )
+
+    sulfate = st.number_input(
+        "Sulfate (mg/L)",
+        min_value=0.0,
+        value=300.0
+    )
+
+    conductivity = st.number_input(
+        "Conductivity (μS/cm)",
+        min_value=0.0,
+        value=400.0
+    )
+
+with col3:
+    organic_carbon = st.number_input(
+        "Organic Carbon (ppm)",
+        min_value=0.0,
+        value=10.0
+    )
+
+    trihalomethanes = st.number_input(
+        "Trihalomethanes (μg/L)",
+        min_value=0.0,
+        value=66.0
+    )
+
+    turbidity = st.number_input(
+        "Turbidity (NTU)",
+        min_value=0.0,
+        value=4.0
+    )
+
+# -----------------------------
+# INPUT ARRAY
+# -----------------------------
+input_data = np.array([[
+    ph,
+    hardness,
+    solids,
+    chloramines,
+    sulfate,
+    conductivity,
+    organic_carbon,
+    trihalomethanes,
+    turbidity
+]])
+
+# -----------------------------
+# PREDICT BUTTON
+# -----------------------------
 if st.button("🚀 Analyze Water Quality", use_container_width=True):
 
     scaled_data = scaler.transform(input_data)
@@ -15,79 +119,115 @@ if st.button("🚀 Analyze Water Quality", use_container_width=True):
     except:
         confidence = 85
 
+    st.markdown("---")
     st.subheader("🔍 Analysis Result")
 
-    # No balloons
+    # -----------------------------
+    # WATER QUALITY SCORE
+    # -----------------------------
+    score = 100
 
+    if ph < 6.5 or ph > 8.5:
+        score -= 15
+
+    if hardness > 300:
+        score -= 10
+
+    if solids > 30000:
+        score -= 10
+
+    if chloramines > 10:
+        score -= 10
+
+    if sulfate > 400:
+        score -= 10
+
+    if conductivity > 800:
+        score -= 10
+
+    if organic_carbon > 25:
+        score -= 10
+
+    if trihalomethanes > 100:
+        score -= 15
+
+    if turbidity > 5:
+        score -= 10
+
+    score = max(score, 0)
+
+    # -----------------------------
+    # RESULT CARD
+    # -----------------------------
     if prediction[0] == 1:
 
-        st.markdown("""
-        <div style='padding:20px;
-                    border-radius:10px;
-                    background-color:#d4edda;
-                    color:black'>
-        <h2>✅ SAFE TO DRINK</h2>
-        <p>The water sample appears potable according to the ML model.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.success("✅ SAFE TO DRINK")
 
     else:
 
-        st.markdown("""
-        <div style='padding:20px;
-                    border-radius:10px;
-                    background-color:#f8d7da;
-                    color:black'>
-        <h2>❌ NOT SAFE TO DRINK</h2>
-        <p>The water sample appears unsafe according to the ML model.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.error("❌ NOT SAFE TO DRINK")
 
-    st.write("Prediction Value:", prediction[0])
+    st.metric("Water Quality Score", f"{score}/100")
 
     st.markdown("### 📈 Model Confidence")
+
     st.progress(int(confidence))
     st.write(f"Confidence Score: {confidence:.2f}%")
 
-    # -----------------------------------
-    # SAFETY CHECKS
-    # -----------------------------------
-
+    # -----------------------------
+    # WARNINGS
+    # -----------------------------
     warnings = []
 
     if ph < 6.5 or ph > 8.5:
-        warnings.append("pH is outside safe drinking range (6.5–8.5).")
+        warnings.append("pH is outside safe range (6.5 - 8.5)")
 
     if hardness > 300:
-        warnings.append("Hardness is extremely high.")
+        warnings.append("Hardness is extremely high")
 
     if solids > 30000:
-        warnings.append("Total dissolved solids are very high.")
+        warnings.append("Total dissolved solids are very high")
 
     if chloramines > 10:
-        warnings.append("Chloramines level is high.")
+        warnings.append("Chloramines level is high")
 
     if sulfate > 400:
-        warnings.append("Sulfate concentration is high.")
+        warnings.append("Sulfate concentration is high")
 
     if conductivity > 800:
-        warnings.append("Conductivity is unusually high.")
+        warnings.append("Conductivity is unusually high")
 
     if organic_carbon > 25:
-        warnings.append("Organic carbon level is high.")
+        warnings.append("Organic carbon level is high")
 
     if trihalomethanes > 100:
-        warnings.append("Trihalomethanes level is unsafe.")
+        warnings.append("Trihalomethanes level is unsafe")
 
     if turbidity > 5:
-        warnings.append("Turbidity is above recommended level.")
+        warnings.append("Turbidity exceeds recommended limit")
 
+    # -----------------------------
+    # DISPLAY WARNINGS
+    # -----------------------------
     if warnings:
+
         st.markdown("### ⚠️ Water Quality Warnings")
 
         for warning in warnings:
             st.warning(warning)
 
         st.error(
-            "Although the ML model may predict SAFE, some parameters exceed recommended drinking-water limits."
+            "Some parameters exceed recommended drinking-water standards."
         )
+
+    else:
+
+        st.success(
+            "All parameters are within commonly accepted drinking-water limits."
+        )
+
+# -----------------------------
+# FOOTER
+# -----------------------------
+st.markdown("---")
+st.caption("Machine Learning Based Water Potability Prediction System")
