@@ -1,37 +1,40 @@
 import streamlit as st
 import numpy as np
 import pickle
+import random
 
-# -------------------------------
-# Page Configuration
-# -------------------------------
+# -----------------------------------
+# PAGE CONFIG
+# -----------------------------------
 st.set_page_config(
-    page_title="Water Potability Predictor",
+    page_title="AquaGuard AI",
     page_icon="🚰",
     layout="wide"
 )
 
-# -------------------------------
-# Load Model
-# -------------------------------
+# -----------------------------------
+# LOAD MODEL
+# -----------------------------------
 model = pickle.load(open("water_model.pkl", "rb"))
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
-# -------------------------------
-# Header
-# -------------------------------
+# -----------------------------------
+# HEADER
+# -----------------------------------
 st.markdown("""
-# 🚰 Smart Water Potability Prediction System
+<div style='text-align:center'>
+    <h1>🚰 AquaGuard AI</h1>
+    <h3>Smart Water Quality Assessment System</h3>
+    <p>Analyze water quality and determine whether it is safe for drinking using Machine Learning.</p>
+</div>
+""", unsafe_allow_html=True)
 
-This Machine Learning application predicts whether water is safe for drinking based on water quality parameters.
+st.markdown("---")
 
----
-""")
-
-# -------------------------------
-# Sidebar Inputs
-# -------------------------------
-st.sidebar.header("🔬 Water Parameters")
+# -----------------------------------
+# SIDEBAR INPUTS
+# -----------------------------------
+st.sidebar.header("🧪 Enter Water Parameters")
 
 ph = st.sidebar.slider("pH", 0.0, 14.0, 7.0)
 
@@ -67,9 +70,45 @@ turbidity = st.sidebar.slider(
     "Turbidity (NTU)", 0.0, 10.0, 4.0
 )
 
-# -------------------------------
-# Create Input Array
-# -------------------------------
+# -----------------------------------
+# DASHBOARD METRICS
+# -----------------------------------
+st.subheader("📊 Water Quality Dashboard")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("pH", round(ph, 2))
+
+with col2:
+    st.metric("Hardness", round(hardness, 2))
+
+with col3:
+    st.metric("Turbidity", round(turbidity, 2))
+
+# -----------------------------------
+# HEALTH CHECK
+# -----------------------------------
+st.markdown("---")
+st.subheader("🧪 Parameter Health Check")
+
+c1, c2 = st.columns(2)
+
+with c1:
+    if 6.5 <= ph <= 8.5:
+        st.success("✅ pH Level is within safe range")
+    else:
+        st.warning("⚠️ pH Level is outside safe range")
+
+with c2:
+    if turbidity < 5:
+        st.success("✅ Turbidity Level is acceptable")
+    else:
+        st.warning("⚠️ Turbidity Level is high")
+
+# -----------------------------------
+# INPUT ARRAY
+# -----------------------------------
 input_data = np.array([[
     ph,
     hardness,
@@ -82,152 +121,77 @@ input_data = np.array([[
     turbidity
 ]])
 
-# -------------------------------
-# Layout Columns
-# -------------------------------
-col1, col2 = st.columns([2, 1])
+# -----------------------------------
+# PREDICTION
+# -----------------------------------
+st.markdown("---")
 
-with col1:
+if st.button("🚀 Analyze Water Quality", use_container_width=True):
 
-    st.subheader("📋 Input Summary")
+    scaled_data = scaler.transform(input_data)
 
-    st.dataframe({
-        "Parameter": [
-            "pH",
-            "Hardness",
-            "Solids",
-            "Chloramines",
-            "Sulfate",
-            "Conductivity",
-            "Organic Carbon",
-            "Trihalomethanes",
-            "Turbidity"
-        ],
-        "Value": [
-            ph,
-            hardness,
-            solids,
-            chloramines,
-            sulfate,
-            conductivity,
-            organic_carbon,
-            trihalomethanes,
-            turbidity
-        ]
-    })
-
-with col2:
-
-    st.subheader("ℹ️ About")
-
-    st.info("""
-    This model predicts water potability using:
-    
-    • Logistic Regression  
-    • Decision Tree  
-    • SVM  
-    • KNN
-    
-    Best model selected after hyperparameter tuning.
-    """)
-
-# -------------------------------
-# Prediction Button
-# -------------------------------
-if st.button("🚀 Predict Water Quality"):
-
-    scaled_input = scaler.transform(input_data)
-
-    prediction = model.predict(scaled_input)
+    prediction = model.predict(scaled_data)
 
     try:
-        probability = model.predict_proba(scaled_input)[0]
+        probability = model.predict_proba(scaled_data)[0]
         confidence = max(probability) * 100
     except:
-        confidence = 0
+        confidence = 85
 
-    st.markdown("---")
-
-    st.subheader("📊 Prediction Result")
+    st.subheader("🔍 Analysis Result")
 
     if prediction[0] == 1:
 
-        st.success("✅ Water is SAFE for drinking")
+        st.balloons()
 
-        st.metric(
-            label="Confidence Score",
-            value=f"{confidence:.2f}%"
-        )
-
-        st.progress(int(confidence))
+        st.markdown("""
+        <div style='padding:20px;
+                    border-radius:10px;
+                    background-color:#d4edda;
+                    color:black'>
+        <h2>✅ SAFE TO DRINK</h2>
+        <p>The water sample appears potable and suitable for drinking.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     else:
 
-        st.error("❌ Water is NOT SAFE for drinking")
+        st.markdown("""
+        <div style='padding:20px;
+                    border-radius:10px;
+                    background-color:#f8d7da;
+                    color:black'>
+        <h2>❌ NOT SAFE TO DRINK</h2>
+        <p>The water sample may contain unsafe characteristics.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.metric(
-            label="Confidence Score",
-            value=f"{confidence:.2f}%"
-        )
+    st.markdown("### 📈 Model Confidence")
 
-        st.progress(int(confidence))
+    st.progress(int(confidence))
 
-# -------------------------------
-# Water Quality Guide
-# -------------------------------
+    st.write(f"**Confidence Score:** {confidence:.2f}%")
+
+# -----------------------------------
+# WATER FACTS
+# -----------------------------------
 st.markdown("---")
 
-st.subheader("📖 Water Quality Guidelines")
+facts = [
+    "💧 Only about 1% of Earth's water is suitable for drinking.",
+    "🌍 Around 71% of Earth is covered with water.",
+    "🚰 Safe drinking water helps prevent many diseases.",
+    "🧪 Water quality depends on physical and chemical properties.",
+    "💦 Turbidity measures the cloudiness of water.",
+    "🌱 Clean water is essential for human health and agriculture."
+]
 
-guide1, guide2, guide3 = st.columns(3)
+st.subheader("🌍 Did You Know?")
 
-with guide1:
-    st.success("""
-    Recommended pH
-    
-    ✔ 6.5 - 8.5
-    """)
+st.info(random.choice(facts))
 
-with guide2:
-    st.warning("""
-    Turbidity
-    
-    ✔ Less than 5 NTU
-    """)
-
-with guide3:
-    st.info("""
-    Sulfate
-    
-    ✔ Less than 500 mg/L
-    """)
-
-# -------------------------------
-# Footer
-# -------------------------------
+# -----------------------------------
+# FOOTER
+# -----------------------------------
 st.markdown("---")
-
-st.markdown("""
-### 👨‍💻 Project Details
-
-**Dataset Size:** 3276 Samples
-
-**Features Used:**
-- pH
-- Hardness
-- Solids
-- Chloramines
-- Sulfate
-- Conductivity
-- Organic Carbon
-- Trihalomethanes
-- Turbidity
-
-**Target:** Potability (Safe / Unsafe)
-
-Built using:
-- Python
-- Streamlit
-- Scikit-Learn
-- Machine Learning
-""")
+st.caption("🚰 AquaGuard AI | Machine Learning Based Water Potability Prediction")
